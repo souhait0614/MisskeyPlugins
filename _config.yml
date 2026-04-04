@@ -1,9 +1,0 @@
-theme: jekyll-theme-Modernist
-title: MisskeyPlugins
-description: プラグイン置き場
-markdown: kramdown
-kramdown:
-  input: GFM
-  hard_wrap: true
-plugins:
-  - jekyll-seo-tag
