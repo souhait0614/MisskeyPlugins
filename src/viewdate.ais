@@ -1,8 +1,8 @@
-/// @ 0.16.0
+/// @ 1.1.0
 ### {
-  name: "投稿時刻を表示するプラグイン(aiscript0.12.4以降対応版)"
-  version: "2.0.0"
-  author: "@elysion (Original: taiy)"
+  name: "投稿時刻を表示するプラグイン(aiscript1.1.0以降対応版)"
+  version: "3.0.0"
+  author: "@souhait@submarin.online (Original: @taiy@submarin.online, 0.12.4Fix: @elysion@submarin.online)"
   description: "ノートメニューに【投稿時刻を表示】を追加します。"
   permissions: []
   config: {
@@ -27,19 +27,19 @@ let has_offset = (Plugin:config.offset == "") || (Plugin:config.offset == null)
 let c_offset = if has_offset 540 else Plugin:config.offset
 
 if has_format {
-  Mk:dialog("投稿時刻を表示するプラグインより" `書式の指定がありません。{Str:lf}自動で **YYYY/MM/DD HH:mm:ss.SSS** が適用されます。` "warn")
+  Mk:dialog("投稿時刻を表示するプラグインより", `書式の指定がありません。{Str:lf}自動で **YYYY/MM/DD HH:mm:ss.SSS** が適用されます。`, "warn")
 }
 if has_offset {
-  Mk:dialog("投稿時刻を表示するプラグインより" `時差の指定がありません。{Str:lf}自動で **540** が適用されます。` "warn")
+  Mk:dialog("投稿時刻を表示するプラグインより", `時差の指定がありません。{Str:lf}自動で **540** が適用されます。`, "warn")
 }
 
-@format(str tokens) {
-  @sort(arr mapfn) {
+@format(str, tokens) {
+  @sort(arr, mapfn) {
     @bubbleSort(arr) {
       let length = arr.len
       for let i, length {
         for let j, (length - i - 1) {
-          if (Obj:get(arr[j] "index") > Obj:get(arr[j + 1] "index")) {
+          if (Obj:get(arr[j], "index") > Obj:get(arr[j + 1], "index")) {
             let tmp = arr[j]
             arr[j] = arr[j + 1]
             arr[j + 1] = tmp
@@ -49,7 +49,7 @@ if has_offset {
       return arr
     }
     return bubbleSort(arr.map(mapfn)).map(@(obj) {
-      return Obj:get(obj "value")
+      return Obj:get(obj, "value")
     })
   }
   @flat(arr) {
@@ -57,12 +57,12 @@ if has_offset {
       return (Core:type(val) == "arr")
     }
     @fn_flat(arr) {
-      arr = arr.reduce(@(prev val) {
+      arr = arr.reduce(@(prev, val) {
         if !(fn_isArr(val)) {
           val = [val]
         }
         return prev.concat(val)
-      } [])
+      }, [])
       if (arr.filter(fn_isArr).len != 0) {
         arr = fn_flat(arr)
       }
@@ -70,25 +70,25 @@ if has_offset {
     }
     return fn_flat(arr.copy())
   }
-  @at(arr index) {
+  @at(arr, index) {
     if (index < 0) return null
     if (arr.len <= index) return null
     return arr[index]
   }
   @startAt(arr) {
-    return at(arr 0)
+    return at(arr, 0)
   }
   @lastAt(arr) {
-    return at(arr (arr.len-1))
+    return at(arr, (arr.len-1))
   }
 
   @toStr(strArr) {
     return flat(strArr).map(@(strObj) {
-      return Obj:get(strObj "string")
+      return Obj:get(strObj, "string")
     }).join("")
   }
 
-  tokens = sort(Obj:kvs(tokens) @(arr) {
+  tokens = sort(Obj:kvs(tokens), @(arr) {
     let token = arr[0]
     let value = arr[1]
     return {
@@ -101,7 +101,7 @@ if has_offset {
   })
   tokens.reverse()
 
-  str = str.split("").reduce(@(prev cur) {
+  str = str.split("").reduce(@(prev, cur) {
     if (cur == "[") {
       prev.push({
         string: ""
@@ -114,27 +114,27 @@ if has_offset {
       })
     } else {
       let last = lastAt(prev)
-      let s = Obj:get(last "string")
-      Obj:set(last "string" `{s}{cur}`)
+      let s = Obj:get(last, "string")
+      Obj:set(last, "string", `{s}{cur}`)
     }
     return prev
-  } [{
+  }, [{
     string: ""
     replaced: false
   }])
 
-  let result = tokens.reduce(@(strArr tokenObj) {
+  let result = tokens.reduce(@(strArr, tokenObj) {
     strArr = flat(strArr)
-    let t = Obj:get(tokenObj "token")
-    let v = Obj:get(tokenObj "value")
+    let t = Obj:get(tokenObj, "token")
+    let v = Obj:get(tokenObj, "value")
     return strArr.map(@(strObj) {
-      let s = Obj:get(strObj "string")
-      let r = Obj:get(strObj "replaced")
+      let s = Obj:get(strObj, "string")
+      let r = Obj:get(strObj, "replaced")
       if r {
         return strObj
       }
       let a = s.split(t)
-      return a.reduce(@(prev cur index) { // index=1~len
+      return a.reduce(@(prev, cur, index) { // index=1~len
         if (cur != "") {
           prev.push({
             string: cur
@@ -148,14 +148,14 @@ if has_offset {
           })
         }
         return prev
-      } [])
+      }, [])
     })
-  } str)
+  }, str)
 
   return toStr(result)
 }
 
-@DateObj(unixtime minuteOffset) {
+@DateObj(unixtime, minuteOffset) {
   let YEAR_ONE = 365
   let YEAR_FOUR = 1461
   let YEAR_100 = 36524
@@ -232,51 +232,51 @@ if has_offset {
   result.minute = minute
   result.second = second
   result.millisecond = millisecond
-  result.weekday = weekday 
+  result.weekday = weekday
 
   return result
 }
-@DateTokenObj(unixtime minuteOffset) {
-  let d = DateObj(unixtime minuteOffset)
+@DateTokenObj(unixtime, minuteOffset) {
+  let d = DateObj(unixtime, minuteOffset)
   let result = {}
-  @zeroPadding(n length) {
+  @zeroPadding(n, length) {
     let num = n
     let abs = Math:abs(num)
     let str = abs.to_str()
     let sign = if (num < 0) "-" else ""
-    let len = Math:max(0 (length - str.len))
-    let pstr = if (len == 0) "" else Core:range(1 len).map(@(v){"0"}).join("")
+    let len = Math:max(0, (length - str.len))
+    let pstr = if (len == 0) "" else Core:range(1, len).map(@(v){"0"}).join("")
     return `{sign}{pstr}{str}`
   }
   let z = zeroPadding
 
-  result.YY = z((d.year % 100) 2)
-  result.YYYY = z(d.year 4)
-  result.M = z(d.month 1)
-  result.MM = z(d.month 2)
-  result.D = z(d.day 1)
-  result.DD = z(d.day 2)
+  result.YY = z((d.year % 100), 2)
+  result.YYYY = z(d.year, 4)
+  result.M = z(d.month, 1)
+  result.MM = z(d.month, 2)
+  result.D = z(d.day, 1)
+  result.DD = z(d.day, 2)
 
-  result.d = z(d.weekday 1)
+  result.d = z(d.weekday, 1)
 
   var hour12 = (d.hour % 12)
   if (hour12 == 0) {
     hour12 = 12
   }
-  result.H = z(d.hour 1)
-  result.HH = z(d.hour 2)
-  result.h = z(hour12 1)
-  result.hh = z(hour12 2)
-  result.m = z(d.minute 1)
-  result.mm = z(d.minute 2)
-  result.s = z(d.second 1)
-  result.ss = z(d.second 2)
-  result.SSS = z(d.millisecond 3)
+  result.H = z(d.hour, 1)
+  result.HH = z(d.hour, 2)
+  result.h = z(hour12, 1)
+  result.hh = z(hour12, 2)
+  result.m = z(d.minute, 1)
+  result.mm = z(d.minute, 2)
+  result.s = z(d.second, 1)
+  result.ss = z(d.second, 2)
+  result.SSS = z(d.millisecond, 3)
 
   let tzoffset = Math:abs(d.minuteOffset)
   let tzsign = if (d.minuteOffset < 0) "-" else "+"
-  let tzhour = z((Math:floor((tzoffset / 60)) % 60) 2)
-  let tzminute = z((tzoffset % 60) 2)
+  let tzhour = z((Math:floor((tzoffset / 60)) % 60), 2)
+  let tzminute = z((tzoffset % 60), 2)
   result.Z = `{tzsign}{tzhour}:{tzminute}`
   result.ZZ = `{tzsign}{tzhour}{tzminute}`
 
@@ -286,12 +286,12 @@ if has_offset {
   @indicator(n) {
     let i = Math:abs(n)
     let cent = (i % 100)
-    if Core:and((10 <= cent) (cent <= 20)) return `{n}th`
+    if Core:and((10 <= cent), (cent <= 20)) return `{n}th`
     let dec = (i % 10)
     match dec {
-      1 => return `{n}st`
-      2 => return `{n}nd`
-      3 => return `{n}rd`
+      case 1 => return `{n}st`
+      case 2 => return `{n}nd`
+      case 3 => return `{n}rd`
     }
     return `{n}th`
   }
@@ -301,23 +301,23 @@ if has_offset {
   if (hour24 == 0) {
     hour24 = 24
   }
-  result.k = z(hour24 1)
-  result.kk = z(hour24 2)
+  result.k = z(hour24, 1)
+  result.kk = z(hour24, 2)
   result.X = `{Math:floor((d.unixtime / 1000))}`
   result.x = `{d.unixtime}`
 
   return result
 }
 
-@dateformat(fmt str offset) {
-  return format(fmt DateTokenObj(Date:parse(str) offset))
+@dateformat(fmt, str, offset) {
+  return format(fmt, DateTokenObj(Date:parse(str), offset))
 }
 
-Plugin:register_note_action("投稿時刻を表示" @(note) {
-  let formated = dateformat(c_format note.createdAt c_offset)
-  Mk:dialog("投稿時刻" formated "info")
+Plugin:register_note_action("投稿時刻を表示", @(note) {
+  let formated = dateformat(c_format, note.createdAt, c_offset)
+  Mk:dialog("投稿時刻", formated, "info")
 })
-Plugin:register_user_action("作成日時を表示" @(user) {
-  let formated = dateformat(c_format user.createdAt c_offset)
-  Mk:dialog("作成日時" formated "info")
+Plugin:register_user_action("作成日時を表示", @(user) {
+  let formated = dateformat(c_format, user.createdAt, c_offset)
+  Mk:dialog("作成日時", formated, "info")
 })
