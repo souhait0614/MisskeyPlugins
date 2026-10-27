@@ -1,0 +1,11 @@
+{
+  "name": "@repo/tsconfig",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "exports": {
+    "./base.json": "./base.json",
+    "./frontend.json": "./frontend.json"
+  }
+}

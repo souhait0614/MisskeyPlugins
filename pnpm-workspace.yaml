@@ -1,0 +1,22 @@
+saveExact: true
+packages:
+  - 'apps/*'
+  - 'packages/*'
+catalog:
+  '@types/node': 24.19.2
+  eslint: 9.39.5
+  jiti: 2.7.0
+  typescript: 6.0.3
+allowBuilds:
+  esbuild: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - '@typescript-eslint/parser@8.72.1'
+  - '@typescript-eslint/project-service@8.72.1'
+  - '@typescript-eslint/scope-manager@8.72.1'
+  - '@typescript-eslint/tsconfig-utils@8.72.1'
+  - '@typescript-eslint/types@8.72.1'
+  - '@typescript-eslint/typescript-estree@8.72.1'
+  - '@typescript-eslint/visitor-keys@8.72.1'
+  - miniflare@5.20261023.0-beta
+  - wrangler@4.153.0

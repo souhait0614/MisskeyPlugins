@@ -1,0 +1,36 @@
+{
+  "name": "misskey-plugins",
+  "version": "1.0.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/souhait0614/MisskeyPlugins"
+  },
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "deploy:workers": "pnpm --filter web run deploy:workers",
+    "dev": "turbo run dev",
+    "lint": "concurrently --names 'root,repo' 'node:lint:root' 'node:lint:repo'",
+    "lint:fix": "concurrently --names 'root,repo' 'node:lint:fix:root' 'node:lint:fix:repo'",
+    "lint:fix:repo": "turbo run lint:fix",
+    "lint:fix:root": "eslint . --fix --no-config-lookup --config eslint.config.ts",
+    "lint:repo": "turbo run lint",
+    "lint:root": "eslint . --no-config-lookup --config eslint.config.ts",
+    "preview:workers": "pnpm --filter web run preview:workers",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "concurrently": "10.0.6",
+    "eslint": "catalog:",
+    "jiti": "catalog:",
+    "turbo": "2.11.10",
+    "typescript": "catalog:"
+  },
+  "packageManager": "pnpm@12.14.0"
+}
+

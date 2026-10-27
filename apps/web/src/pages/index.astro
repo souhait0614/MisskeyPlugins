@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+import { plugins } from '../lib/plugins';
+---
+
+<Base title="Misskey Plugins" description="Misskey 向けプラグインの配布サイトです。">
+  <div class="mb-6 flex flex-col gap-2">
+    <h1 class="text-2xl font-bold">Misskey Plugins</h1>
+    <p>Misskey に機能を追加するプラグインを配布しています。</p>
+  </div>
+
+  <ul class="grid list-none gap-4 p-0 sm:grid-cols-2">
+    {
+      plugins.map((plugin) => (
+        <li>
+          <article class="card h-full border border-base-300 bg-base-100">
+            <div class="card-body gap-3">
+              <h2 class="card-title text-base">
+                <a class="link link-hover" href={`/plugins/${plugin.slug}/`}>
+                  {plugin.meta.name}
+                </a>
+              </h2>
+              {plugin.meta.description && <p class="text-sm">{plugin.meta.description}</p>}
+              <div class="flex flex-wrap gap-2">
+                <span class="badge badge-ghost">v{plugin.meta.version}</span>
+                <span class="badge badge-ghost">AiScript {plugin.langVersion}</span>
+              </div>
+              <p class="text-xs text-base-content/70">{plugin.meta.author}</p>
+            </div>
+          </article>
+        </li>
+      ))
+    }
+  </ul>
+</Base>

@@ -1,0 +1,28 @@
+{
+  "name": "@repo/eslint-config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "exports": {
+    "./typescript.ts": "./typescript.ts",
+    "./astro.ts": "./astro.ts"
+  },
+  "scripts": {
+    "lint": "eslint --cache .",
+    "lint:fix": "eslint --cache --fix .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:*",
+    "@taiyme/eslint-config": "1.0.1",
+    "@types/node": "catalog:",
+    "@typescript-eslint/parser": "8.72.1",
+    "eslint": "catalog:",
+    "eslint-config-flat-gitignore": "2.4.0",
+    "eslint-plugin-astro": "1.7.0",
+    "globals": "17.13.0",
+    "jiti": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,232 @@
+---
+interface Props {
+  apiUrl: string;
+  hash: string;
+  /** インストール先ホストの入力候補 */
+  hosts?: string[];
+}
+
+const { apiUrl, hash, hosts = [] } = Astro.props;
+const hostListId = 'install-host-candidates';
+---
+
+<div data-install-root class="flex flex-col gap-3">
+  <form class="flex flex-wrap items-end gap-3" data-install-form data-api-url={apiUrl} data-hash={hash}>
+    <label class="flex w-full max-w-sm flex-col gap-1">
+      <span class="text-sm font-medium">サーバーのホスト</span>
+      <input
+        id="install-host"
+        class="input w-full"
+        name="host"
+        type="text"
+        list={hostListId}
+        inputmode="url"
+        autocomplete="off"
+        placeholder="misskey.io"
+        spellcheck="false"
+        data-install-host
+      />
+    </label>
+    <a
+      class="btn btn-primary btn-disabled"
+      data-install-link
+      aria-disabled="true"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      インストールする
+    </a>
+    <datalist id={hostListId} data-install-host-list>
+      {hosts.map((host) => (
+        <option value={host} />
+      ))}
+    </datalist>
+  </form>
+  <p class="text-sm">
+    入力したホストの <code class="rounded bg-base-200 px-1">/install-extensions</code> を開きます。
+  </p>
+  <p class="text-xs text-base-content/70">
+    候補は
+    <a
+      class="link"
+      href="https://servers.misskey.ink/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Misskey サーバー一覧
+    </a>
+    からビルド時とブラウザで取得しています。
+  </p>
+  <p class="break-all text-xs text-base-content/70">
+    生成される URL: <code data-install-url></code>
+  </p>
+</div>
+
+<script>
+  const STORAGE_KEY = 'misskey-plugins.host';
+
+  /** ブラウザ側で取得したホスト一覧のキャッシュ */
+  const INSTANCES_ENDPOINT = '/api/instances';
+  const INSTANCES_CACHE_KEY = 'misskey-plugins.instances';
+  /** Worker 側の Cache-Control (max-age=3600) に合わせる */
+  const INSTANCES_CACHE_TTL_MS = 60 * 60 * 1000;
+  const INSTANCES_TIMEOUT_MS = 10_000;
+
+  type InstancesCache = { fetchedAt: number; hosts: string[]; };
+
+  type InstancesResponse = { hosts?: unknown; };
+
+  /** `misskey.io` や `https://misskey.io/` を `https://misskey.io` に正規化する */
+  function resolveOrigin(input: string): string | null {
+    const value = input.trim();
+    if (value === '') return null;
+
+    const withScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(value) ? value : `https://${value}`;
+
+    try {
+      const url = new URL(withScheme);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+      return url.origin;
+    } catch {
+      return null;
+    }
+  }
+
+  function readCachedHosts(): string[] | null {
+    try {
+      const raw = localStorage.getItem(INSTANCES_CACHE_KEY);
+      if (raw == null) return null;
+
+      const parsed: unknown = JSON.parse(raw);
+      if (typeof parsed !== 'object' || parsed === null) return null;
+
+      const { fetchedAt, hosts } = parsed as Partial<InstancesCache>;
+      if (typeof fetchedAt !== 'number' || !Array.isArray(hosts)) return null;
+      if (Date.now() - fetchedAt > INSTANCES_CACHE_TTL_MS) return null;
+
+      return hosts.filter((host): host is string => typeof host === 'string');
+    } catch {
+      return null;
+    }
+  }
+
+  function writeCachedHosts(hosts: string[]): void {
+    try {
+      localStorage.setItem(INSTANCES_CACHE_KEY, JSON.stringify({ fetchedAt: Date.now(), hosts }));
+    } catch {
+      // ストレージが使えない場合はキャッシュしない
+    }
+  }
+
+  /**
+   * 同一オリジンの `/api/instances` から候補を取得する。
+   * 上流 API は CORS 非対応のため、Worker がプロキシしている。
+   */
+  async function fetchHostsFromApi(): Promise<string[]> {
+    try {
+      const response = await fetch(INSTANCES_ENDPOINT, {
+        signal: AbortSignal.timeout(INSTANCES_TIMEOUT_MS),
+      });
+      if (!response.ok) return [];
+
+      const data = (await response.json()) as InstancesResponse;
+      if (!Array.isArray(data.hosts)) return [];
+
+      return data.hosts.filter((host): host is string => typeof host === 'string');
+    } catch {
+      return [];
+    }
+  }
+
+  let hostsPromise: Promise<string[]> | null = null;
+
+  /** キャッシュがあればそれを使い、無ければ API から取得する */
+  function loadHosts(): Promise<string[]> {
+    hostsPromise ??= (async () => {
+      const cached = readCachedHosts();
+      if (cached != null) return cached;
+
+      const hosts = await fetchHostsFromApi();
+      if (hosts.length > 0) writeCachedHosts(hosts);
+      return hosts;
+    })();
+
+    return hostsPromise;
+  }
+
+  /** ビルド時に埋め込んだ候補に、ブラウザで取得した候補を足す */
+  function mergeHostOptions(list: HTMLDataListElement, hosts: string[]): void {
+    const known = new Set(Array.from(list.options, (option) => option.value));
+    const fragment = document.createDocumentFragment();
+
+    for (const host of hosts) {
+      if (known.has(host)) continue;
+      known.add(host);
+
+      const option = document.createElement('option');
+      option.value = host;
+      fragment.append(option);
+    }
+
+    list.append(fragment);
+  }
+
+  /** 描画を妨げないよう、空き時間に取得を開始する */
+  function scheduleHostsLoad(callback: () => void): void {
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(callback, { timeout: 2_000 });
+      return;
+    }
+
+    window.setTimeout(callback, 1_000);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-install-form]').forEach((form) => {
+    const input = form.querySelector<HTMLInputElement>('[data-install-host]');
+    const link = form.querySelector<HTMLAnchorElement>('[data-install-link]');
+    const root = form.closest<HTMLElement>('[data-install-root]') ?? form;
+    const output = root.querySelector<HTMLElement>('[data-install-url]');
+    if (input == null || link == null) return;
+
+    const apiUrl = form.dataset.apiUrl ?? '';
+    const hash = form.dataset.hash ?? '';
+
+    const update = (): void => {
+      const origin = resolveOrigin(input.value);
+
+      if (origin == null) {
+        link.removeAttribute('href');
+        link.setAttribute('aria-disabled', 'true');
+        link.classList.add('btn-disabled');
+        if (output != null) output.textContent = '';
+        return;
+      }
+
+      const params = new URLSearchParams({ url: apiUrl, hash });
+      const installUrl = `${origin}/install-extensions?${params.toString()}`;
+
+      link.href = installUrl;
+      link.setAttribute('aria-disabled', 'false');
+      link.classList.remove('btn-disabled');
+      if (output != null) output.textContent = installUrl;
+
+      localStorage.setItem(STORAGE_KEY, input.value.trim());
+    };
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved != null && input.value === '') input.value = saved;
+
+    input.addEventListener('input', update);
+    update();
+
+    const list = form.querySelector<HTMLDataListElement>('[data-install-host-list]');
+    if (list == null) return;
+
+    scheduleHostsLoad(() => {
+      void loadHosts().then((hosts) => {
+        if (hosts.length === 0) return;
+        mergeHostOptions(list, hosts);
+      });
+    });
+  });
+</script>

@@ -1,0 +1,40 @@
+---
+import '../styles/app.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const siteName = 'Misskey Plugins';
+const pageTitle = title === siteName ? title : `${title} - ${siteName}`;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    {description && <meta name="description" content={description} />}
+  </head>
+  <body class="flex min-h-screen flex-col">
+    <div class="navbar bg-base-200 px-4">
+      <div class="flex-1">
+        <a class="btn btn-ghost text-base" href="/">{siteName}</a>
+      </div>
+      <nav class="flex-none">
+        <a class="btn btn-ghost btn-sm" href="/">プラグイン一覧</a>
+      </nav>
+    </div>
+    <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      <slot />
+    </main>
+    <footer class="footer footer-center bg-base-200 p-4">
+      <aside>
+        <p>Misskey v2023.11.0 以降でインストールできます。</p>
+      </aside>
+    </footer>
+  </body>
+</html>

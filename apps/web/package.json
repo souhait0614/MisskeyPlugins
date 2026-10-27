@@ -1,0 +1,34 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "deploy:workers": "astro build && wrangler deploy",
+    "dev": "astro dev",
+    "lint": "eslint --cache .",
+    "lint:fix": "eslint --cache --fix .",
+    "preview": "astro preview",
+    "preview:workers": "astro preview",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "14.4.2",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.4.2",
+    "daisyui": "5.7.50",
+    "tailwindcss": "4.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.12",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
+    "@syuilo/aiscript": "1.2.1",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "jiti": "catalog:",
+    "typescript": "catalog:",
+    "wrangler": "4.153.0"
+  }
+}

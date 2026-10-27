@@ -1,0 +1,135 @@
+---
+import InstallForm from '../../components/InstallForm.astro';
+import Base from '../../layouts/Base.astro';
+import { getInstanceHosts } from '../../lib/instances';
+import { getApiPath, plugins, type Plugin } from '../../lib/plugins';
+
+export function getStaticPaths() {
+  return plugins.map((plugin) => ({
+    params: { slug: plugin.slug },
+    props: { plugin },
+  }));
+}
+
+interface Props {
+  plugin: Plugin;
+}
+
+const { plugin } = Astro.props;
+const apiPath = getApiPath(plugin.slug);
+const apiUrl = new URL(apiPath, Astro.site ?? Astro.url).href;
+const configEntries = Object.entries(plugin.meta.config);
+const hosts = await getInstanceHosts();
+
+function formatDefault(value: unknown): string {
+  if (value === undefined) return '';
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value);
+}
+---
+
+<Base title={plugin.meta.name} description={plugin.meta.description}>
+  <p class="mb-4"><a class="link" href="/">← プラグイン一覧</a></p>
+  <h1 class="mb-2 text-2xl font-bold">{plugin.meta.name}</h1>
+  {plugin.meta.description && <p class="mb-6">{plugin.meta.description}</p>}
+
+  <section class="mb-8">
+    <h2 class="mb-3 text-lg font-semibold">基本情報</h2>
+    <div class="overflow-x-auto">
+      <table class="table table-sm">
+        <tbody>
+          <tr>
+            <th class="w-32">バージョン</th>
+            <td>{plugin.meta.version}</td>
+          </tr>
+          <tr>
+            <th>作者</th>
+            <td>{plugin.meta.author}</td>
+          </tr>
+          <tr>
+            <th>AiScript</th>
+            <td>{plugin.langVersion}</td>
+          </tr>
+          <tr>
+            <th>ファイル</th>
+            <td><code>{plugin.fileName}</code></td>
+          </tr>
+          <tr>
+            <th>SHA-512</th>
+            <td class="break-all"><code>{plugin.hash}</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="mb-8">
+    <h2 class="mb-3 text-lg font-semibold">インストール</h2>
+    <InstallForm apiUrl={apiUrl} hash={plugin.hash} hosts={hosts} />
+    <ul class="mt-4 list-disc pl-5 text-sm">
+      <li>インストール先のサーバー（Misskey v2023.11.0 以降）にログインした状態で開いてください。</li>
+      <li>
+        インストール時にハッシュ値が照合されるため、配布しているファイルが改ざんされていないことを確認できます。
+      </li>
+      <li>
+        このプラグインが要求する権限: {plugin.meta.permissions.length > 0
+          ? plugin.meta.permissions.join(', ')
+          : 'なし'}
+      </li>
+    </ul>
+  </section>
+
+  {
+    configEntries.length > 0 && (
+      <section class="mb-8">
+        <h2 class="mb-3 text-lg font-semibold">設定項目</h2>
+        <div class="overflow-x-auto">
+          <table class="table table-sm table-zebra">
+            <thead>
+              <tr>
+                <th>キー</th>
+                <th>型</th>
+                <th>ラベル</th>
+                <th>説明</th>
+                <th>既定値</th>
+              </tr>
+            </thead>
+            <tbody>
+              {configEntries.map(([key, item]) => (
+                <tr>
+                  <td><code>{key}</code></td>
+                  <td>{item.type ?? ''}</td>
+                  <td>{item.label ?? ''}</td>
+                  <td>{item.description ?? ''}</td>
+                  <td><code>{formatDefault(item.default)}</code></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="mb-8">
+    <h2 class="mb-3 text-lg font-semibold">配布 API</h2>
+    <p class="mb-2">配布 URL: <a class="link" href={apiPath}><code>{apiUrl}</code></a></p>
+    <p class="mb-2">
+      次の形式の JSON を返します。<code>data</code> は改行コードを LF に統一したプラグインのソースコードです。
+    </p>
+    <pre class="overflow-x-auto rounded-box bg-base-200 p-4 text-xs"><code>{`{
+  "type": "plugin",
+  "data": "<プラグインのソースコード>"
+}`}</code></pre>
+  </section>
+
+  <section>
+    <h2 class="mb-3 text-lg font-semibold">ソースコード</h2>
+    <details class="collapse-arrow collapse border border-base-300">
+      <summary class="collapse-title font-medium">表示する</summary>
+      <div class="collapse-content">
+        <pre class="overflow-x-auto text-xs"><code>{plugin.source}</code></pre>
+      </div>
+    </details>
+  </section>
+</Base>
